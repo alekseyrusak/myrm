@@ -6,7 +6,6 @@ with io.open("README.md", mode="rt", encoding="utf-8") as stream_in:
     # Load the readme file and use it as the long description for this python package.
     long_description = stream_in.read()
 
-
 setup(
     name="myrm",
     version="0.0.0",
@@ -36,4 +35,22 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Utilities",
     ],
+    setup_requires=["setuptools", "wheel"],
+    extras_require={
+        "dev": [
+            "black==22.8.0",
+            "flake8==5.0.4",
+            "isort==5.10.1",
+            "mypy==0.971",
+            "pre-commit==2.20.0",
+            "pylint==2.15.0",
+        ],
+        "tests": [
+            "pyfakefs==4.6.3",
+            "pytest-cov==3.0.0",
+            "pytest-mock==3.8.2",
+            "pytest==7.1.2",
+            "tox==3.26.0",
+        ],
+    },
 )

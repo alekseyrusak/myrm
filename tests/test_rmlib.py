@@ -3,10 +3,11 @@ import logging
 import os
 
 import pytest
+
 from myrm.rmlib import mkdir, mv, mvdir, rm, rmdir
 
 
-def test_mkdir(mocker, caplog, fs):
+def test_mkdir(mocker, caplog, fs):  # pylint: disable=unused-argument
     logger_mock = mocker.patch("myrm.rmlib.logger")
     path = "dir"
 
@@ -17,7 +18,7 @@ def test_mkdir(mocker, caplog, fs):
     assert os.path.exists(path) and os.path.isdir(path)
 
 
-def test_mkdir_with_error(fake_tree):
+def test_mkdir_with_error_exists(fake_tree):
     path = fake_tree[0]
     mkdir(path)
 
@@ -32,9 +33,7 @@ def test_rm(fs, mocker, caplog):
     with caplog.at_level(logging.INFO, logger="myrm"):
         rm(path)
 
-    logger_mock.info.assert_called_with(
-        "Item '%s' was deleted from the current machine.", path
-    )
+    logger_mock.info.assert_called_with("Item '%s' was deleted from the current machine.", path)
     assert not os.path.exists(path)
 
 
