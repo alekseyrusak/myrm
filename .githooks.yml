@@ -53,7 +53,7 @@ repos:
     hooks:
       - id: pytest
         always_run: true
-        entry: pytest-3
+        entry: python3 -m pytest # to prevent this hooks from misoperating pytest
         language: system
         name: pytest
         pass_filenames: false
