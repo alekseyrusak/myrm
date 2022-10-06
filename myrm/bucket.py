@@ -26,11 +26,14 @@ __all__ = (
 )
 
 
+SECONDS_TO_DAYS: int = 60 * 60 * 24
+BYTES_TO_MBYTES: int = 1024 * 1024
+
 DEFAULT_PATH: str = os.path.join(settings.XDG_DATA_HOME, "trash_bin")
 DEFAULT_HISTORY_PATH: str = os.path.join(settings.XDG_DATA_HOME, "history.pkl")
 
-DEFAULT_BUCKET_SIZE: int = 1024 * 1024 * 1024
-DEFAULT_CLEANUP_TIME: int = 60 * 60 * 24 * 7
+DEFAULT_BUCKET_SIZE: int = BYTES_TO_MBYTES * 1024
+DEFAULT_CLEANUP_TIME: int = SECONDS_TO_DAYS * 7
 
 
 class Status(enum.Enum):
@@ -157,19 +160,20 @@ class Bucket:
         else:
             rmlib.mv(path, os.path.join(self.path, name))
 
+        shorted_path = path
         if len(path) > 50:
             # Prevent the terminal stdout from longer item paths.
             shorted_path = "".join([path[0:15], " ... ", path[len(path) - 30 :]])  # noqa
 
         self.history[name] = Entry(Status.CORRECT.value, index, origin, shorted_path, date, path)
 
+    def create(self) -> None:
+        rmlib.mkdir(self.path)
+
     def startup(self) -> None:
         self.create()
         self.timeout_cleanup()
         self.check_content()
-
-    def create(self) -> None:
-        rmlib.mkdir(self.path)
 
     def cleanup(self) -> None:
         rmlib.rmdir(self.path)
@@ -177,7 +181,7 @@ class Bucket:
         self.history.cleanup()
 
     def rm(self, path: str, force: bool = False) -> None:
-        if self.maxsize <= (self.get_size() + os.path.getsize(path)):
+        if self.maxsize * BYTES_TO_MBYTES <= (self.get_size() + os.path.getsize(path)):
             logger.error("Maximum trash bin size exided.")
             # Stop this program runtime and return the exit status code.
             sys.exit(errno.EPERM)
@@ -229,7 +233,7 @@ class Bucket:
 
             index = self.history.get_next_index()
 
-            if name not in self.history:
+            if name not in list(self.history):
                 self.history[name] = Entry(
                     Status.UNKNOWN.value,
                     index,
@@ -239,7 +243,7 @@ class Bucket:
                     Status.UNKNOWN.value,
                 )
 
-        for key in self.history:
+        for key in list(self.history):
             if key not in content:
                 del self.history[key]
 
@@ -264,7 +268,7 @@ class Bucket:
                 # Stop this program runtime and return the exit status code.
                 sys.exit(getattr(err, "errno", errno.EPERM))
 
-            if (current_time - trashed_time) >= self.storetime:
+            if (current_time - trashed_time) >= self.storetime * SECONDS_TO_DAYS:
                 self._rm(abspath)
 
     def restore(self, index: int) -> None:
