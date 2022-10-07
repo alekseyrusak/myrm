@@ -36,6 +36,7 @@ setup(
         "Topic :: Utilities",
     ],
     setup_requires=["setuptools", "wheel"],
+    install_requires=["prettytable>=2.5.0,<3.5.0"],
     extras_require={
         "dev": [
             "black>=22.8.0,<23.0.0",

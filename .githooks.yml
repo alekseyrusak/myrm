@@ -26,12 +26,14 @@ repos:
     rev: v2.15.2
     hooks:
       - id: pylint
+        exclude: ^docs|tests
         language_version: python3
 
   - repo: https://github.com/PyCQA/flake8
     rev: 5.0.4
     hooks:
       - id: flake8
+        exclude: ^docs|tests
         language_version: python3
 
   - repo: https://github.com/pycqa/isort

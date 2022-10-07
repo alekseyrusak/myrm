@@ -2,6 +2,8 @@ import os
 
 import pytest
 
+from myrm import bucket
+
 
 @pytest.fixture
 def fake_tree(fs):
@@ -28,3 +30,28 @@ def fake_tree(fs):
     paths.append(path)
 
     return paths
+
+
+@pytest.fixture
+def fake_bucket(fs):
+    test_bucket = bucket.Bucket(path="trash", history_path="history.pkl")
+    test_bucket.create()
+
+    return test_bucket
+
+
+@pytest.fixture
+def fake_bucket_history(fs):
+    return bucket.BucketHistory(path="history.pkl")
+
+
+@pytest.fixture
+def fake_entry():
+    return bucket.Entry(
+        status=bucket.Status.CORRECT.value,
+        index=1,
+        name="test.txt",
+        path="test.txt",
+        date="12:03:12",
+        origin="test.txt",
+    )
