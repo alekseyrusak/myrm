@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from myrm import bucket
+from myrm import bucket, settings
 
 
 @pytest.fixture
@@ -55,3 +55,27 @@ def fake_entry():
         date="12:03:12",
         origin="test.txt",
     )
+
+
+@pytest.fixture
+def fake_path_field():
+    class Mock:
+        path = settings.PathField()
+
+    return Mock()
+
+
+@pytest.fixture
+def fake_integer():
+    class Mock:
+        number = settings.PositiveIntegerField()
+
+    return Mock()
+
+
+@pytest.fixture
+def fake_boolean():
+    class Mock:
+        flag = settings.BooleanField()
+
+    return Mock()

@@ -19,21 +19,9 @@ logger = logging.getLogger("myrm")
 
 
 __all__ = (
-    "DEFAULT_PATH",
-    "DEFAULT_HISTORY_PATH",
-    "DEFAULT_BUCKET_SIZE",
     "Bucket",
+    "BucketHistory",
 )
-
-
-SECONDS_TO_DAYS: int = 60 * 60 * 24
-BYTES_TO_MBYTES: int = 1024 * 1024
-
-DEFAULT_PATH: str = os.path.join(settings.XDG_DATA_HOME, "trash_bin")
-DEFAULT_HISTORY_PATH: str = os.path.join(settings.XDG_DATA_HOME, "history.pkl")
-
-DEFAULT_BUCKET_SIZE: int = BYTES_TO_MBYTES * 1024
-DEFAULT_CLEANUP_TIME: int = SECONDS_TO_DAYS * 7
 
 
 class Status(enum.Enum):
@@ -45,7 +33,9 @@ Entry = collections.namedtuple("Entry", "status index name path date origin")
 
 
 class BucketHistory(collections.UserDict):
-    def __init__(self, *args: Any, path: str = DEFAULT_HISTORY_PATH, **kwargs: Any) -> None:
+    def __init__(
+        self, *args: Any, path: str = settings.DEFAULT_BUCKET_HISTORY_PATH, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.path = path
@@ -132,10 +122,10 @@ class BucketHistory(collections.UserDict):
 class Bucket:
     def __init__(
         self,
-        path: str = DEFAULT_PATH,
-        history_path: str = DEFAULT_HISTORY_PATH,
-        maxsize: int = DEFAULT_BUCKET_SIZE,
-        storetime: int = DEFAULT_CLEANUP_TIME,
+        path: str = settings.DEFAULT_BUCKET_PATH,
+        history_path: str = settings.DEFAULT_BUCKET_HISTORY_PATH,
+        maxsize: int = settings.DEFAULT_BUCKET_SIZE,
+        storetime: int = settings.DEFAULT_CLEANUP_TIME,
     ) -> None:
         self.path = path
         self.maxsize = maxsize
@@ -181,7 +171,7 @@ class Bucket:
         self.history.cleanup()
 
     def rm(self, path: str, force: bool = False) -> None:
-        if self.maxsize * BYTES_TO_MBYTES <= (self.get_size() + os.path.getsize(path)):
+        if self.maxsize * settings.BYTES_TO_MBYTES <= (self.get_size() + os.path.getsize(path)):
             logger.error("Maximum trash bin size exided.")
             # Stop this program runtime and return the exit status code.
             sys.exit(errno.EPERM)
@@ -268,7 +258,7 @@ class Bucket:
                 # Stop this program runtime and return the exit status code.
                 sys.exit(getattr(err, "errno", errno.EPERM))
 
-            if (current_time - trashed_time) >= self.storetime * SECONDS_TO_DAYS:
+            if (current_time - trashed_time) >= self.storetime * settings.SECONDS_TO_DAYS:
                 self._rm(abspath)
 
     def restore(self, index: int) -> None:

@@ -259,7 +259,7 @@ def test_timeout_cleanup_bucket(fake_bucket, fs, mocker):
     before_cleanup_content = os.listdir(fake_bucket.path)
 
     fake_bucket.storetime = 1
-    mocker.patch("myrm.bucket.SECONDS_TO_DAYS", new=1)
+    mocker.patch("myrm.settings.SECONDS_TO_DAYS", new=1)
     mocker.patch("myrm.bucket.os.path.getmtime", return_value=1)
     mocker.patch("myrm.bucket.time.time", return_value=10)
 
