@@ -209,20 +209,19 @@ def test_get_size_bucket(fake_bucket, fs):
     assert fake_bucket.get_size() > 0
 
 
-# WIP.
-# def test_get_size_with_not_impossible_error(fake_bucket, mocker):
-#     logger_mock = mocker.patch("myrm.bucket.logger")
-#     # mocker.patch("myrm.bucket.os.path.isfile", return_value=True)
-#     # mocker.patch("myrm.bucket.os.path.islink", return_value=True)
+def test_get_size_with_not_impossible_error(fake_bucket, mocker):
+    logger_mock = mocker.patch("myrm.bucket.logger")
+    get_size_mock = mocker.patch("os.path.getsize")
+    get_size_mock.side_effect = IOError(errno.EIO, "")
 
-#     # fs.create_file("test.txt")
-#     # os.chmod("test.txt", stat.S_IREAD)
+    mocker.patch("myrm.bucket.os.path.isfile", return_value=True)
+    mocker.patch("myrm.bucket.os.path.islink", return_value=True)
 
-#     with pytest.raises(SystemExit) as exit_info:
-#         fake_bucket._get_size("test1.txt")
+    with pytest.raises(SystemExit) as exit_info:
+        fake_bucket._get_size("test.txt")
 
-#     logger_mock.error.assert_called_with("It's impossible to get size of the determined path.")
-#     assert exit_info.value.code == errno.EIO
+    logger_mock.error.assert_called_with("It's impossible to get size of the determined path.")
+    assert exit_info.value.code == errno.EIO
 
 
 def test_get_size_bucket_with_not_exists_error(mocker):

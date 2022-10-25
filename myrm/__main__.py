@@ -19,21 +19,21 @@ def abspath(path: str) -> str:
     return os.path.normpath(os.path.join(dirname, path))
 
 
-def restore(arguments: Any, trash_bin: Any) -> None:
+def restore(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
     for index in arguments.INDICES:
         trash_bin.restore(index)
 
 
-def show(arguments: Any, trash_bin: Any) -> None:
+def show(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
     print(trash_bin.history.get_table(page=arguments.page, count=arguments.limit))
 
 
-def remove(arguments: Any, trash_bin: Any) -> None:
+def remove(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
     for item in arguments.FILES:
         trash_bin.rm(item, force=arguments.force)
 
 
-def maintain(arguments: Any, trash_bin: Any) -> None:
+def maintain(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
     if arguments.create:
         trash_bin.create()
 
