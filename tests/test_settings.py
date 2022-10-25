@@ -15,7 +15,7 @@ def test_load_settings(fs):
         "bucket_path": "recycle",
         "bucket_history_path": "history_bucket.pkl",
         "bucket_size": 10,
-        "bucket_cleanup_time": 2,
+        "bucket_storetime": 2,
     }
 
     with io.open(path, mode="wt", encoding="utf-8") as stream_out:
@@ -124,7 +124,7 @@ def test_app_settings_with_validation_error(caplog):
         "bucket_path": "test",
         "bucket_history_path": "test.pkl",
         "bucket_size": "test",
-        "bucket_cleanup_time": 2,
+        "bucket_storetime": 2,
     }
 
     with pytest.raises(SystemExit) as exit_info:
@@ -137,3 +137,24 @@ def test_app_settings_with_validation_error(caplog):
         == "The validation process was failed: Number must be integer but recieved: <class 'str'>."
     )
     assert exit_info.value.code == errno.EPERM
+
+
+def test_generate(fs):
+    path = "test/test_settings.json"
+
+    settings.generate(path)
+    assert os.path.isfile(path) and os.path.exists(path)
+
+
+def test_generate_with_error(mocker):
+    logger_mock = mocker.patch("myrm.settings.logger")
+    open_mock = mocker.patch("myrm.settings.io.open")
+    open_mock.side_effect = IOError(errno.EIO, "")
+
+    with pytest.raises(SystemExit) as exit_info:
+        settings.generate()
+
+    logger_mock.error.assert_called_with(
+        "It's impossible to generate the settings on the current machine."
+    )
+    assert exit_info.value.code == errno.EIO

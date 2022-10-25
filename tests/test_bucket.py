@@ -2,6 +2,7 @@ import errno
 import io
 import os
 import pickle
+import stat
 
 import pytest
 from prettytable import PrettyTable
@@ -92,7 +93,19 @@ def test_get_table_bucket_history(fake_bucket_history, fake_entry):
     assert table is not None and isinstance(table, PrettyTable)
 
 
-def test_get_table_bucket_history_with_error(fake_bucket_history, fake_entry, mocker):
+def test_get_table_bucket_history_with_warning(fake_bucket_history, mocker):
+    logger_mock = mocker.patch("myrm.bucket.logger")
+
+    with pytest.raises(SystemExit) as exit_info:
+        fake_bucket_history.get_table(1, 1)
+
+    logger_mock.warning.assert_called_with(
+        "Show content of the bucket failed because tha main bucket is empty."
+    )
+    assert exit_info.value.code == errno.EPERM
+
+
+def test_get_table_bucket_history_with_index_error(fake_bucket_history, fake_entry, mocker):
     fake_bucket_history["test"] = fake_entry
 
     logger_mock = mocker.patch("myrm.bucket.logger")
@@ -194,6 +207,22 @@ def test_get_size_bucket(fake_bucket, fs):
 
     fake_bucket.rm(path)
     assert fake_bucket.get_size() > 0
+
+
+# WIP.
+# def test_get_size_with_not_impossible_error(fake_bucket, mocker):
+#     logger_mock = mocker.patch("myrm.bucket.logger")
+#     # mocker.patch("myrm.bucket.os.path.isfile", return_value=True)
+#     # mocker.patch("myrm.bucket.os.path.islink", return_value=True)
+
+#     # fs.create_file("test.txt")
+#     # os.chmod("test.txt", stat.S_IREAD)
+
+#     with pytest.raises(SystemExit) as exit_info:
+#         fake_bucket._get_size("test1.txt")
+
+#     logger_mock.error.assert_called_with("It's impossible to get size of the determined path.")
+#     assert exit_info.value.code == errno.EIO
 
 
 def test_get_size_bucket_with_not_exists_error(mocker):

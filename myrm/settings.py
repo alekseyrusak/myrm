@@ -4,7 +4,9 @@ import json
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, Dict, Union
+
+from . import rmlib
 
 # Create a new instance of the preferred reporting system for this program.
 logger = logging.getLogger("myrm")
@@ -16,12 +18,14 @@ __all__ = (
     "HOME",
     "XDG_CONFIG_HOME",
     "XDG_DATA_HOME",
+    "DEFAULT_SETTINGS_PATH",
     "DEFAULT_BUCKET_PATH",
     "DEFAULT_BUCKET_HISTORY_PATH",
     "DEFAULT_BUCKET_SIZE",
     "DEFAULT_CLEANUP_TIME",
     "ValidationError",
     "AppSettings",
+    "generate",
     "load",
 )
 
@@ -35,6 +39,8 @@ XDG_CONFIG_HOME: str = os.path.join(HOME, ".config", "myrm")
 
 # Where user-specific data files should be written.
 XDG_DATA_HOME: str = os.path.join(HOME, ".local", "share", "myrm")
+
+DEFAULT_SETTINGS_PATH: str = os.path.join(XDG_CONFIG_HOME, "settings.json")
 
 DEFAULT_BUCKET_PATH: str = os.path.join(XDG_DATA_HOME, "trash_bin")
 DEFAULT_BUCKET_HISTORY_PATH: str = os.path.join(XDG_DATA_HOME, "history.pkl")
@@ -99,31 +105,57 @@ class AppSettings:
     bucket_path = PathField()
     bucket_history_path = PathField()
     bucket_size = PositiveIntegerField()
-    bucket_cleanup_time = PositiveIntegerField()
+    bucket_storetime = PositiveIntegerField()
 
     def __init__(
         self,
         bucket_path: str = DEFAULT_BUCKET_PATH,
         bucket_history_path: str = DEFAULT_BUCKET_HISTORY_PATH,
         bucket_size: int = DEFAULT_BUCKET_SIZE,
-        bucket_cleanup_time: int = DEFAULT_CLEANUP_TIME,
+        bucket_storetime: int = DEFAULT_CLEANUP_TIME,
     ) -> None:
         try:
             self.bucket_path = bucket_path
             self.bucket_history_path = bucket_history_path
             self.bucket_size = bucket_size
-            self.bucket_cleanup_time = bucket_cleanup_time
+            self.bucket_storetime = bucket_storetime
         except ValidationError as err:
             logger.error("The validation process was failed: %s", err)
             # Stop this program runtime and return the exit status code.
             sys.exit(getattr(err, "errno", errno.EPERM))
 
+    def __str__(self) -> str:
+        return json.dumps(self.dump(), indent=2)
 
-def load(path: str) -> AppSettings:
+    def dump(self) -> Dict[str, Union[str, int]]:
+        return {
+            "bucket_path": self.bucket_path,
+            "bucket_history_path": self.bucket_history_path,
+            "bucket_size": self.bucket_size,
+            "bucket_storetime": self.bucket_storetime,
+        }
+
+
+def generate(path: str = DEFAULT_SETTINGS_PATH) -> None:
+    dirname = os.path.dirname(path)
+    if dirname:
+        rmlib.mkdir(dirname)
+
+    try:
+        with io.open(path, mode="wt", encoding="utf-8") as stream_out:
+            stream_out.write(str(AppSettings()))
+    except (IOError, OSError) as err:
+        logger.error("It's impossible to generate the settings on the current machine.")
+        logger.debug("An unexpected error occurred at this program runtime:", exc_info=True)
+        # Stop this program runtime and return the exit status code.
+        sys.exit(getattr(err, "errno", errno.EIO))
+
+
+def load(path: str = DEFAULT_SETTINGS_PATH) -> AppSettings:
     try:
         with io.open(path, mode="rt", encoding="utf-8") as stream_in:
             return AppSettings(**json.load(stream_in))
-    except TypeError as err:
+    except (TypeError, json.decoder.JSONDecodeError) as err:
         logger.error("It's impossible to parse the provided settings scheme.")
         logger.debug("An unexpected error occurred at this program runtime:", exc_info=True)
         # Stop this program runtime and return the exit status code.

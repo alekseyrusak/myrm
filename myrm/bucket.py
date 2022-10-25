@@ -92,6 +92,11 @@ class BucketHistory(collections.UserDict):
 
     def get_table(self, page: int = 1, count: int = 10) -> PrettyTable:
         values = list(self.values())
+        if not values:
+            logger.warning("Show content of the bucket failed because tha main bucket is empty.")
+            # Stop this program runtime and return the exit status code.
+            sys.exit(errno.EPERM)
+
         try:
             pages = [
                 values[index : index + count] for index in range(0, len(values), count)  # noqa
@@ -157,32 +162,18 @@ class Bucket:
 
         self.history[name] = Entry(Status.CORRECT.value, index, origin, shorted_path, date, path)
 
-    def create(self) -> None:
-        rmlib.mkdir(self.path)
-
-    def startup(self) -> None:
-        self.create()
-        self.timeout_cleanup()
-        self.check_content()
-
-    def cleanup(self) -> None:
-        rmlib.rmdir(self.path)
-        self.create()
-        self.history.cleanup()
-
-    def rm(self, path: str, force: bool = False) -> None:
-        if self.maxsize * settings.BYTES_TO_MBYTES <= (self.get_size() + os.path.getsize(path)):
-            logger.error("Maximum trash bin size exided.")
-            # Stop this program runtime and return the exit status code.
-            sys.exit(errno.EPERM)
-
-        if not force:
-            self._mv(path)
-        elif force:
-            self._rm(path)
-
-    def get_size(self) -> int:
+    def _get_size(self, path: str) -> int:
         size = 0
+
+        if os.path.isfile(path) or os.path.islink(path):
+            try:
+                return os.path.getsize(path)
+            except (OSError, IOError) as err:
+                logger.error("It's impossible to get size of the determined path.")
+                logger.debug("An unexpected error occurred at this program runtime:", exc_info=True)
+                # Stop this program runtime and return the exit status code.
+                sys.exit(getattr(err, "errno", errno.EIO))
+
         try:
             content = os.walk(self.path)
         except OSError as err:
@@ -207,6 +198,33 @@ class Bucket:
                         sys.exit(getattr(err, "errno", errno.EPERM))
 
         return size
+
+    def create(self) -> None:
+        rmlib.mkdir(self.path)
+
+    def startup(self) -> None:
+        self.create()
+        self.timeout_cleanup()
+        self.check_content()
+
+    def cleanup(self) -> None:
+        rmlib.rmdir(self.path)
+        self.create()
+        self.history.cleanup()
+
+    def rm(self, path: str, force: bool = False) -> None:
+        if self.maxsize * settings.BYTES_TO_MBYTES <= self.get_size() + self._get_size(path):
+            logger.error("Maximum trash bin size exided.")
+            # Stop this program runtime and return the exit status code.
+            sys.exit(errno.EPERM)
+
+        if not force:
+            self._mv(path)
+        elif force:
+            self._rm(path)
+
+    def get_size(self) -> int:
+        return self._get_size(self.path)
 
     def check_content(self) -> None:
         try:
