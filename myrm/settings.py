@@ -67,7 +67,7 @@ class PathField:
         if not path:
             raise ValidationError("Path can not be empty.")
 
-        self.path = os.path.abspath(os.path.expanduser(path))
+        self.path = os.path.expanduser(path)
 
 
 class PositiveIntegerField:

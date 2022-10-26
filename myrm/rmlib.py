@@ -79,7 +79,7 @@ def rmdir(path: str) -> None:
 def mv(src: str, dst: str) -> None:
     try:
         os.rename(src, dst)
-        logger.info("Item '%s' was moved to '%s' as a destinatinal path.", src, dst)
+        logger.info("Item '%s' was moved to '%s' as a destinational path.", src, dst)
     except OSError as err:
         logger.error("The determined item can't be moved to the destinational path.")
         logger.debug("An unexpected error occurred at this program runtime:", exc_info=True)

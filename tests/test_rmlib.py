@@ -61,7 +61,7 @@ def test_mv(fs, mocker, caplog):
         mv(src, dst)
 
     logger_mock.info.assert_called_with(
-        "Item '%s' was moved to '%s' as a destinatinal path.", src, dst
+        "Item '%s' was moved to '%s' as a destinational path.", src, dst
     )
     assert not os.path.exists(src) and os.path.exists(dst)
 
