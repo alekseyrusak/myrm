@@ -46,7 +46,7 @@ def show(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
 
 def restore(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
     for index in arguments.INDICES:
-        trash_bin.restore(index, dryrun=arguments.dryrun)
+        trash_bin.restore(index, dry_run=arguments.dry_run)
 
 
 def remove(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
@@ -63,9 +63,10 @@ def remove(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
     for file in arguments.FILES:
         if arguments.regex:
             for reg_file in sorted(glob.glob(os.path.join(file, arguments.regex))):
-                trash_bin.rm(reg_file, force=arguments.force, dryrun=arguments.dryrun)
+                trash_bin.rm(reg_file, force=arguments.force, dry_run=arguments.dry_run)
         else:
-            trash_bin.rm(file, force=arguments.force, dryrun=arguments.dryrun)
+            trash_bin.rm(file, force=arguments.force, dry_run=arguments.dry_run)
+
     return None
 
 
@@ -78,6 +79,7 @@ def maintain_bucket(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> 
             return None
 
         trash_bin.cleanup()
+
     return None
 
 
@@ -138,7 +140,7 @@ def main() -> None:  # pylint: disable=too-many-statements
         help="ask confirmation before executing user's commands",
     )
     option_parser.add_argument(
-        "--dryrun",
+        "--dry-run",
         action="store_true",
         default=False,
         help="ask confirmation before executing user's commands",
@@ -232,7 +234,7 @@ def main() -> None:  # pylint: disable=too-many-statements
         else:
             # Set a new logging level of the preferred reporting system.
             logger.setLevel(arguments.logging_level)
-            if arguments.dryrun:
+            if arguments.dry_run:
                 logger.setLevel(logging.INFO)
 
             app_settings = arguments.get_settings(arguments)
@@ -242,7 +244,7 @@ def main() -> None:  # pylint: disable=too-many-statements
                 maxsize=app_settings.bucket_size,
                 storetime=app_settings.bucket_storetime,
             )
-            app_bucket.startup(dryrun=arguments.dryrun)
+            app_bucket.startup()
 
             arguments.func(arguments, app_bucket)
     except KeyboardInterrupt as err:

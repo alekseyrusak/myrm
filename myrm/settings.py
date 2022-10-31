@@ -135,10 +135,10 @@ class AppSettings:
         }
 
 
-def generate(path: str = DEFAULT_SETTINGS_PATH, dryrun: bool = False) -> None:
+def generate(path: str = DEFAULT_SETTINGS_PATH) -> None:
     dirname = os.path.dirname(path)
     if dirname:
-        rmlib.mkdir(dirname, dryrun)
+        rmlib.mkdir(dirname)
 
     try:
         with io.open(path, mode="wt", encoding="utf-8") as stream_out:

@@ -86,8 +86,8 @@ class BucketHistory(collections.UserDict):
 
         return index
 
-    def cleanup(self, dryrun: bool = False) -> None:
-        if not dryrun:
+    def cleanup(self, dry_run: bool = False) -> None:
+        if not dry_run:
             self.data = {}
             self._write()
 
@@ -138,13 +138,13 @@ class Bucket:
         self.storetime = storetime
         self.history = BucketHistory(path=history_path)
 
-    def _rm(self, path: str, dryrun: bool = False) -> None:
+    def _rm(self, path: str, dry_run: bool = False) -> None:
         if os.path.isdir(path):
-            rmlib.rmdir(path, dryrun)
+            rmlib.rmdir(path, dry_run)
         else:
-            rmlib.rm(path, dryrun)
+            rmlib.rm(path, dry_run)
 
-    def _mv(self, path: str, dryrun: bool = False) -> None:
+    def _mv(self, path: str, dry_run: bool = False) -> None:
         origin = os.path.basename(path)
         name = str(uuid.uuid4())
         date = time.strftime("%H:%M:%S %m-%d-%Y", time.localtime())
@@ -152,9 +152,9 @@ class Bucket:
         index = self.history.get_next_index()
 
         if os.path.isdir(path):
-            rmlib.mvdir(path, os.path.join(self.path, name), dryrun)
+            rmlib.mvdir(path, os.path.join(self.path, name), dry_run)
         else:
-            rmlib.mv(path, os.path.join(self.path, name), dryrun)
+            rmlib.mv(path, os.path.join(self.path, name), dry_run)
 
         shorted_path = path
         if len(path) > 50:
@@ -200,29 +200,29 @@ class Bucket:
 
         return size
 
-    def create(self, dryrun: bool = False) -> None:
-        rmlib.mkdir(self.path, dryrun)
+    def create(self, dry_run: bool = False) -> None:
+        rmlib.mkdir(self.path, dry_run)
 
-    def startup(self, dryrun: bool = False) -> None:
-        self.create(dryrun)
-        self.timeout_cleanup(dryrun)
+    def startup(self) -> None:
+        self.create()
+        self.timeout_cleanup()
         self.check_content()
 
-    def cleanup(self, dryrun: bool = False) -> None:
-        rmlib.rmdir(self.path, dryrun)
-        self.create(dryrun)
-        self.history.cleanup(dryrun)
+    def cleanup(self, dry_run: bool = False) -> None:
+        rmlib.rmdir(self.path, dry_run)
+        self.create(dry_run)
+        self.history.cleanup(dry_run)
 
-    def rm(self, path: str, force: bool = False, dryrun: bool = False) -> None:
+    def rm(self, path: str, force: bool = False, dry_run: bool = False) -> None:
         if self.maxsize * settings.BYTES_TO_MBYTES <= self.get_size() + self._get_size(path):
             logger.error("Maximum trash bin size exided.")
             # Stop this program runtime and return the exit status code.
             sys.exit(errno.EPERM)
 
         if not force:
-            self._mv(path, dryrun)
+            self._mv(path, dry_run)
         elif force:
-            self._rm(path, dryrun)
+            self._rm(path, dry_run)
 
     def get_size(self) -> int:
         return self._get_size(self.path)
@@ -256,7 +256,7 @@ class Bucket:
             if key not in content:
                 del self.history[key]
 
-    def timeout_cleanup(self, dryrun: bool = False) -> None:
+    def timeout_cleanup(self) -> None:
         current_time = time.time()
         try:
             content = os.listdir(self.path)
@@ -278,9 +278,9 @@ class Bucket:
                 sys.exit(getattr(err, "errno", errno.EPERM))
 
             if (current_time - trashed_time) >= self.storetime * settings.SECONDS_TO_DAYS:
-                self._rm(abspath, dryrun)
+                self._rm(abspath)
 
-    def restore(self, index: int, dryrun: bool = False) -> None:
+    def restore(self, index: int, dry_run: bool = False) -> None:
         if not self.history:
             logger.error("Restore failed because tha main bin is empty.")
             # Stop this program runtime and return the exit status code.
@@ -307,8 +307,8 @@ class Bucket:
             sys.exit(errno.EPERM)
 
         if os.path.isdir(src):
-            rmlib.mvdir(src, dst, dryrun)
+            rmlib.mvdir(src, dst, dry_run)
         else:
-            rmlib.mv(src, dst, dryrun)
+            rmlib.mv(src, dst, dry_run)
 
         self.check_content()

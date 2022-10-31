@@ -16,9 +16,9 @@ __all__ = (
 )
 
 
-def mkdir(path: str, dryrun: bool = False) -> None:
+def mkdir(path: str, dry_run: bool = False) -> None:
     try:
-        if not dryrun:
+        if not dry_run:
             os.makedirs(path)
         logger.info("Directory '%s' was created.", path)
     except OSError as err:
@@ -29,9 +29,9 @@ def mkdir(path: str, dryrun: bool = False) -> None:
             sys.exit(getattr(err, "errno", errno.EPERM))
 
 
-def rm(path: str, dryrun: bool = False) -> None:
+def rm(path: str, dry_run: bool = False) -> None:
     try:
-        if not dryrun:
+        if not dry_run:
             os.remove(path)
         logger.info("Item '%s' was deleted from the current machine.", path)
     except OSError as err:
@@ -41,7 +41,7 @@ def rm(path: str, dryrun: bool = False) -> None:
         sys.exit(getattr(err, "errno", errno.EPERM))
 
 
-def rmdir(path: str, dryrun: bool = False) -> None:
+def rmdir(path: str, dry_run: bool = False) -> None:
     try:
         content = os.walk(path, topdown=False)
     except OSError as err:
@@ -53,13 +53,13 @@ def rmdir(path: str, dryrun: bool = False) -> None:
     for top, dirs, nondirs in content:
         # Step -- 1.
         for name in nondirs:
-            rm(os.path.join(top, name), dryrun)
+            rm(os.path.join(top, name), dry_run)
 
         try:
             # Step -- 2.
             for name in dirs:
                 abspath = os.path.join(top, name)
-                if not dryrun:
+                if not dry_run:
                     os.rmdir(abspath)
                 logger.info("Folder '%s' was deleted from the current machine.", abspath)
         except OSError as err:
@@ -69,7 +69,7 @@ def rmdir(path: str, dryrun: bool = False) -> None:
             sys.exit(getattr(err, "errno", errno.EPERM))
 
     try:
-        if not dryrun:
+        if not dry_run:
             os.rmdir(path)
     except OSError as err:
         logger.error("The determined path can't be deleted from the current machine.")
@@ -80,9 +80,9 @@ def rmdir(path: str, dryrun: bool = False) -> None:
         logger.info("Directory '%s' was deleted from the current machine.", path)
 
 
-def mv(src: str, dst: str, dryrun: bool = False) -> None:
+def mv(src: str, dst: str, dry_run: bool = False) -> None:
     try:
-        if not dryrun:
+        if not dry_run:
             os.rename(src, dst)
         logger.info("Item '%s' was moved to '%s' as a destinational path.", src, dst)
     except OSError as err:
@@ -92,7 +92,7 @@ def mv(src: str, dst: str, dryrun: bool = False) -> None:
         sys.exit(getattr(err, "errno", errno.EPERM))
 
 
-def mvdir(src: str, dst: str, dryrun: bool = False) -> None:
+def mvdir(src: str, dst: str, dry_run: bool = False) -> None:
     try:
         content = os.walk(src, topdown=False)
     except OSError as err:
@@ -101,15 +101,15 @@ def mvdir(src: str, dst: str, dryrun: bool = False) -> None:
         # Stop this program runtime and return the exit status code.
         sys.exit(getattr(err, "errno", errno.EPERM))
 
-    if not dryrun:
+    if not dry_run:
         for top, _, nondirs in content:
             abspath = top.replace(src, dst)
 
             # Step -- 1.
-            mkdir(abspath, dryrun)
+            mkdir(abspath, dry_run)
 
             # Step -- 2.
             for name in nondirs:
-                mv(os.path.join(top, name), os.path.join(abspath, name), dryrun)
-        rmdir(src, dryrun)
+                mv(os.path.join(top, name), os.path.join(abspath, name), dry_run)
+        rmdir(src, dry_run)
     logger.info("Directory '%s' was moved to '%s' as a destinational path.", src, dst)

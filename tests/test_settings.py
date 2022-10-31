@@ -142,7 +142,7 @@ def test_app_settings_with_validation_error(caplog):
 def test_generate(fs):
     path = "test/test_settings.json"
 
-    settings.generate(path, dryrun=False)
+    settings.generate(path)
     assert os.path.isfile(path) and os.path.exists(path)
 
 
@@ -152,7 +152,7 @@ def test_generate_with_error(mocker):
     open_mock.side_effect = IOError(errno.EIO, "")
 
     with pytest.raises(SystemExit) as exit_info:
-        settings.generate(dryrun=False)
+        settings.generate()
 
     logger_mock.error.assert_called_with(
         "It's impossible to generate the settings on the current machine."
