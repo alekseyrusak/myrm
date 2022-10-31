@@ -1,5 +1,6 @@
 import argparse
 import errno
+import glob
 import logging
 import os
 import sys
@@ -45,12 +46,27 @@ def show(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
 
 def restore(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
     for index in arguments.INDICES:
-        trash_bin.restore(index)
+        trash_bin.restore(index, dryrun=arguments.dryrun)
 
 
 def remove(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
-    for item in arguments.FILES:
-        trash_bin.rm(item, force=arguments.force)
+    if arguments.force:
+        # The user's request for command execution.
+        if not confirmation("delete"):
+            return None
+
+    if arguments.confirm:
+        # The user's request for command execution.
+        if not confirmation("delete"):
+            return None
+
+    for file in arguments.FILES:
+        if arguments.regex:
+            for reg_file in sorted(glob.glob(os.path.join(file, arguments.regex))):
+                trash_bin.rm(reg_file, force=arguments.force, dryrun=arguments.dryrun)
+        else:
+            trash_bin.rm(file, force=arguments.force, dryrun=arguments.dryrun)
+    return None
 
 
 def maintain_bucket(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
@@ -58,10 +74,26 @@ def maintain_bucket(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> 
         trash_bin.create()
 
     if arguments.cleanup:
+        if arguments.confirm and not confirmation("cleanup the bucket"):
+            return None
+
         trash_bin.cleanup()
+    return None
 
 
-def main() -> None:
+def confirmation(command: str) -> bool:
+    answer = ""
+
+    while answer not in ("yes", "no"):
+        answer = input(str(f"Do you want to {command}? (yes/no)\n")).lower()
+
+    if answer == "yes":
+        return True
+
+    return False
+
+
+def main() -> None:  # pylint: disable=too-many-statements
     # Step -- 1.
     settings_parser = argparse.ArgumentParser(add_help=False)
     settings_parser.add_argument(
@@ -99,11 +131,17 @@ def main() -> None:
     # Step -- 2.
     option_parser = argparse.ArgumentParser(add_help=False)
     option_parser.add_argument(
-        "-v",
-        "--verbose",
+        "-c",
+        "--confirm",
         action="store_true",
         default=False,
-        help="shows verbosely what happens while command's runtime",
+        help="ask confirmation before executing user's commands",
+    )
+    option_parser.add_argument(
+        "--dryrun",
+        action="store_true",
+        default=False,
+        help="ask confirmation before executing user's commands",
     )
 
     # Step -- 3.
@@ -114,7 +152,7 @@ def main() -> None:
         "--debug",
         action="store_const",
         const=logging.DEBUG,  # level must be an int or a str
-        default=logging.INFO,
+        default=logging.WARNING,
         dest="logging_level",
         help="print a lot of debugging statements while executing user's commands",
     )
@@ -123,9 +161,18 @@ def main() -> None:
         "--silent",
         action="store_const",
         const=logging.NOTSET,  # level must be an int or a str
-        default=logging.INFO,
+        default=logging.WARNING,
         dest="logging_level",
         help="do not print any statements while executing user's commands",
+    )
+    logger_group.add_argument(
+        "-v",
+        "--verbose",
+        action="store_const",
+        const=logging.INFO,  # level must be an int or a str
+        default=logging.WARNING,
+        dest="logging_level",
+        help="print verbosely what happens while executing user's commands",
     )
 
     # Step -- 4.
@@ -145,6 +192,7 @@ def main() -> None:
     # Step -- 5.
     rm_parser = group.add_parser("rm", parents=[settings_parser, logger_parser, option_parser])
     rm_parser.add_argument("FILES", nargs="+", type=abspath)
+    rm_parser.add_argument("-r", "--regex", type=str, help="regular expression arrangements")
     rm_parser.add_argument(
         "-f",
         "--force",
@@ -155,7 +203,7 @@ def main() -> None:
     rm_parser.set_defaults(func=remove)
 
     # Step -- 6.
-    show_parser = group.add_parser("show", parents=[settings_parser, logger_parser, option_parser])
+    show_parser = group.add_parser("show", parents=[settings_parser, logger_parser])
     show_parser.add_argument("--limit", default=20, type=int)
     show_parser.add_argument("--page", default=1, type=int)
     show_parser.set_defaults(func=show)
@@ -184,6 +232,8 @@ def main() -> None:
         else:
             # Set a new logging level of the preferred reporting system.
             logger.setLevel(arguments.logging_level)
+            if arguments.dryrun:
+                logger.setLevel(logging.INFO)
 
             app_settings = arguments.get_settings(arguments)
             app_bucket = bucket.Bucket(
@@ -192,7 +242,7 @@ def main() -> None:
                 maxsize=app_settings.bucket_size,
                 storetime=app_settings.bucket_storetime,
             )
-            app_bucket.startup()
+            app_bucket.startup(dryrun=arguments.dryrun)
 
             arguments.func(arguments, app_bucket)
     except KeyboardInterrupt as err:

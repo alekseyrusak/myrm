@@ -86,9 +86,10 @@ class BucketHistory(collections.UserDict):
 
         return index
 
-    def cleanup(self) -> None:
-        self.data = {}
-        self._write()
+    def cleanup(self, dryrun: bool = False) -> None:
+        if not dryrun:
+            self.data = {}
+            self._write()
 
     def get_table(self, page: int = 1, count: int = 10) -> PrettyTable:
         values = list(self.values())
@@ -137,13 +138,13 @@ class Bucket:
         self.storetime = storetime
         self.history = BucketHistory(path=history_path)
 
-    def _rm(self, path: str) -> None:
+    def _rm(self, path: str, dryrun: bool = False) -> None:
         if os.path.isdir(path):
-            rmlib.rmdir(path)
+            rmlib.rmdir(path, dryrun)
         else:
-            rmlib.rm(path)
+            rmlib.rm(path, dryrun)
 
-    def _mv(self, path: str) -> None:
+    def _mv(self, path: str, dryrun: bool = False) -> None:
         origin = os.path.basename(path)
         name = str(uuid.uuid4())
         date = time.strftime("%H:%M:%S %m-%d-%Y", time.localtime())
@@ -151,9 +152,9 @@ class Bucket:
         index = self.history.get_next_index()
 
         if os.path.isdir(path):
-            rmlib.mvdir(path, os.path.join(self.path, name))
+            rmlib.mvdir(path, os.path.join(self.path, name), dryrun)
         else:
-            rmlib.mv(path, os.path.join(self.path, name))
+            rmlib.mv(path, os.path.join(self.path, name), dryrun)
 
         shorted_path = path
         if len(path) > 50:
@@ -199,29 +200,29 @@ class Bucket:
 
         return size
 
-    def create(self) -> None:
-        rmlib.mkdir(self.path)
+    def create(self, dryrun: bool = False) -> None:
+        rmlib.mkdir(self.path, dryrun)
 
-    def startup(self) -> None:
-        self.create()
-        self.timeout_cleanup()
+    def startup(self, dryrun: bool = False) -> None:
+        self.create(dryrun)
+        self.timeout_cleanup(dryrun)
         self.check_content()
 
-    def cleanup(self) -> None:
-        rmlib.rmdir(self.path)
-        self.create()
-        self.history.cleanup()
+    def cleanup(self, dryrun: bool = False) -> None:
+        rmlib.rmdir(self.path, dryrun)
+        self.create(dryrun)
+        self.history.cleanup(dryrun)
 
-    def rm(self, path: str, force: bool = False) -> None:
+    def rm(self, path: str, force: bool = False, dryrun: bool = False) -> None:
         if self.maxsize * settings.BYTES_TO_MBYTES <= self.get_size() + self._get_size(path):
             logger.error("Maximum trash bin size exided.")
             # Stop this program runtime and return the exit status code.
             sys.exit(errno.EPERM)
 
         if not force:
-            self._mv(path)
+            self._mv(path, dryrun)
         elif force:
-            self._rm(path)
+            self._rm(path, dryrun)
 
     def get_size(self) -> int:
         return self._get_size(self.path)
@@ -255,7 +256,7 @@ class Bucket:
             if key not in content:
                 del self.history[key]
 
-    def timeout_cleanup(self) -> None:
+    def timeout_cleanup(self, dryrun: bool = False) -> None:
         current_time = time.time()
         try:
             content = os.listdir(self.path)
@@ -277,9 +278,9 @@ class Bucket:
                 sys.exit(getattr(err, "errno", errno.EPERM))
 
             if (current_time - trashed_time) >= self.storetime * settings.SECONDS_TO_DAYS:
-                self._rm(abspath)
+                self._rm(abspath, dryrun)
 
-    def restore(self, index: int) -> None:
+    def restore(self, index: int, dryrun: bool = False) -> None:
         if not self.history:
             logger.error("Restore failed because tha main bin is empty.")
             # Stop this program runtime and return the exit status code.
@@ -306,8 +307,8 @@ class Bucket:
             sys.exit(errno.EPERM)
 
         if os.path.isdir(src):
-            rmlib.mvdir(src, dst)
+            rmlib.mvdir(src, dst, dryrun)
         else:
-            rmlib.mv(src, dst)
+            rmlib.mv(src, dst, dryrun)
 
         self.check_content()

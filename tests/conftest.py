@@ -35,7 +35,7 @@ def fake_tree(fs):
 @pytest.fixture
 def fake_bucket(fs):
     test_bucket = bucket.Bucket(path="trash", history_path="history.pkl")
-    test_bucket.create()
+    test_bucket.create(dryrun=False)
 
     return test_bucket
 

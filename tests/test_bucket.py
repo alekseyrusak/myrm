@@ -79,7 +79,7 @@ def test_get_next_index_bucket_history(fake_bucket_history, fake_entry):
 
 def test_bucket_history_cleanup(fake_bucket_history, fake_entry):
     fake_bucket_history["test"] = fake_entry
-    fake_bucket_history.cleanup()
+    fake_bucket_history.cleanup(dryrun=False)
 
     with io.open(fake_bucket_history.path, mode="rb") as stream_in:
         assert pickle.load(stream_in) == {}
@@ -121,7 +121,7 @@ def test_bucket_permanent_rm_file(fake_bucket, fs):
     path = "test.txt"
     fs.create_file(path)
 
-    fake_bucket._rm(path)
+    fake_bucket._rm(path, dryrun=False)
     assert not os.path.exists(path)
 
 
@@ -129,7 +129,7 @@ def test_bucket_permanent_rm_folder(fake_bucket, fs):
     path = "test"
     fs.create_dir(path)
 
-    fake_bucket._rm(path)
+    fake_bucket._rm(path, dryrun=False)
     assert not os.path.exists(path)
 
 
@@ -137,7 +137,7 @@ def test_bucket_mv_file(fs, fake_bucket):
     path = "test_file_looooooooooooooooooooooooong_nameeeeeeeeeeeeeeeeee.txt"
     fs.create_file(path)
 
-    fake_bucket._mv(path)
+    fake_bucket._mv(path, dryrun=False)
     assert not os.path.exists(path) and len(os.listdir(fake_bucket.path))
     assert len(list(fake_bucket.history.values())[0].path) <= 50
 
@@ -146,7 +146,7 @@ def test_bucket_mv_folder(fs, fake_bucket):
     path = "test"
     fs.create_dir(path)
 
-    fake_bucket._mv(path)
+    fake_bucket._mv(path, dryrun=False)
     assert not os.path.exists(path) and len(os.listdir(fake_bucket.path))
 
 
@@ -154,20 +154,20 @@ def test_create_bucket(fs):
     test_bucket = bucket.Bucket(path="trash")
 
     assert not os.path.exists(test_bucket.path)
-    test_bucket.create()
+    test_bucket.create(dryrun=False)
     assert os.path.isdir(test_bucket.path)
 
 
 def test_startup_bucket(fs):
     test_bucket = bucket.Bucket(path="trash", history_path="history.pkl")
-    test_bucket.startup()
+    test_bucket.startup(dryrun=False)
 
     assert os.path.exists(test_bucket.path)
     assert os.listdir(test_bucket.path) == list(test_bucket.history.keys())
 
 
 def test_cleanup_bucket(fake_bucket):
-    fake_bucket.cleanup()
+    fake_bucket.cleanup(dryrun=False)
     assert os.path.exists(fake_bucket.path) and not len(os.listdir(fake_bucket.path))
     assert fake_bucket.history == {}
 
@@ -176,7 +176,7 @@ def test_rm_to_bucket_force(fs, fake_bucket):
     path = "test.txt"
     fs.create_file(path)
 
-    fake_bucket.rm(path, force=True)
+    fake_bucket.rm(path, force=True, dryrun=False)
     assert not os.path.exists(path)
 
 
@@ -184,7 +184,7 @@ def test_rm_to_bucket_not_force(fs, fake_bucket):
     path = "test.txt"
     fs.create_file(path)
 
-    fake_bucket.rm(path)
+    fake_bucket.rm(path, force=False, dryrun=False)
     assert not os.path.exists(path) and len(os.listdir(fake_bucket.path))
 
 
@@ -195,7 +195,7 @@ def test_rm_to_bucket_with_maxsize_error(fake_bucket, mocker):
     logger_mock = mocker.patch("myrm.bucket.logger")
 
     with pytest.raises(SystemExit) as exit_info:
-        fake_bucket.rm("")
+        fake_bucket.rm("", force=False, dryrun=False)
 
     logger_mock.error.assert_called_with("Maximum trash bin size exided.")
     assert exit_info.value.code == errno.EPERM
@@ -205,7 +205,7 @@ def test_get_size_bucket(fake_bucket, fs):
     path = "test.txt"
     fs.create_file(path, contents="test")
 
-    fake_bucket.rm(path)
+    fake_bucket.rm(path, force=False, dryrun=False)
     assert fake_bucket.get_size() > 0
 
 
@@ -291,7 +291,7 @@ def test_timeout_cleanup_bucket(fake_bucket, fs, mocker):
     mocker.patch("myrm.bucket.os.path.getmtime", return_value=1)
     mocker.patch("myrm.bucket.time.time", return_value=10)
 
-    fake_bucket.timeout_cleanup()
+    fake_bucket.timeout_cleanup(dryrun=False)
     assert before_cleanup_content != os.listdir(fake_bucket.path)
 
 
@@ -303,7 +303,7 @@ def test_timeout_cleanup_bucket_with_not_exists_error(mocker):
     listdir_mock.side_effect = OSError(errno.EPERM, "")
 
     with pytest.raises(SystemExit) as exit_info:
-        test_bucket.timeout_cleanup()
+        test_bucket.timeout_cleanup(dryrun=False)
 
     logger_mock.error.assert_called_with("The determined path not exists on the current machine.")
     assert exit_info.value.code == errno.EPERM
@@ -317,7 +317,7 @@ def test_timeout_cleanup_bucket_with_trashed_time_error(fake_bucket, fs, mocker)
     gettime_mock.side_effect = OSError(errno.EPERM, "")
 
     with pytest.raises(SystemExit) as exit_info:
-        fake_bucket.timeout_cleanup()
+        fake_bucket.timeout_cleanup(dryrun=False)
 
     logger_mock.error.assert_called_with("Can't detect trashed time for the determined path.")
     assert exit_info.value.code == errno.EPERM
@@ -327,10 +327,10 @@ def test_restore_file_from_bucket(fake_bucket, fs):
     path = "test.txt"
     fs.create_file(path)
 
-    fake_bucket.rm(path)
+    fake_bucket.rm(path, force=False, dryrun=False)
     before_restore_path = os.path.exists(path)
 
-    fake_bucket.restore(1)
+    fake_bucket.restore(1, dryrun=False)
     assert os.path.exists(path) and not before_restore_path
 
 
@@ -338,10 +338,10 @@ def test_restore_folder_from_bucket(fake_bucket, fs):
     path = "test"
     fs.create_dir(path)
 
-    fake_bucket.rm(path)
+    fake_bucket.rm(path, force=False, dryrun=False)
     before_restore_path = os.path.exists(path)
 
-    fake_bucket.restore(1)
+    fake_bucket.restore(1, dryrun=False)
     assert os.path.exists(path) and not before_restore_path
 
 
@@ -349,7 +349,7 @@ def test_restore_with_bucket_is_empty_error(fake_bucket, mocker):
     logger_mock = mocker.patch("myrm.bucket.logger")
 
     with pytest.raises(SystemExit) as exit_info:
-        fake_bucket.restore(5)
+        fake_bucket.restore(5, dryrun=False)
 
     logger_mock.error.assert_called_with("Restore failed because tha main bin is empty.")
     assert exit_info.value.code == errno.EPERM
@@ -362,7 +362,7 @@ def test_restore_with_index_error(fake_bucket, fake_entry, mocker):
     logger_mock = mocker.patch("myrm.bucket.logger")
 
     with pytest.raises(SystemExit) as exit_info:
-        fake_bucket.restore(index)
+        fake_bucket.restore(index, dryrun=False)
 
     logger_mock.error.assert_called_with(
         "Restore failed because the required index '%s' not found.", index
@@ -377,7 +377,7 @@ def test_restore_with_status_unknown_error(fake_bucket, fs, mocker):
     fake_bucket.check_content()
 
     with pytest.raises(SystemExit) as exit_info:
-        fake_bucket.restore(1)
+        fake_bucket.restore(1, dryrun=False)
 
     logger_mock.error.assert_called_with("Restore failed because the original location unknown.")
     assert exit_info.value.code == errno.EPERM
@@ -387,13 +387,13 @@ def test_restore_with_path_exists_error(fake_bucket, fs, mocker):
     path = "test.txt"
     fs.create_file(path)
 
-    fake_bucket.rm(path)
+    fake_bucket.rm(path, force=False, dryrun=False)
     fs.create_file(path)
 
     logger_mock = mocker.patch("myrm.bucket.logger")
 
     with pytest.raises(SystemExit) as exit_info:
-        fake_bucket.restore(1)
+        fake_bucket.restore(1, dryrun=False)
 
     logger_mock.error.assert_called_with("Restore failed because the destination path exists.")
     assert exit_info.value.code == errno.EPERM

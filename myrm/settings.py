@@ -40,10 +40,9 @@ XDG_CONFIG_HOME: str = os.path.join(HOME, ".config", "myrm")
 # Where user-specific data files should be written.
 XDG_DATA_HOME: str = os.path.join(HOME, ".local", "share", "myrm")
 
-DEFAULT_SETTINGS_PATH: str = os.path.join(XDG_CONFIG_HOME, "settings.json")
-
-DEFAULT_BUCKET_PATH: str = os.path.join(XDG_DATA_HOME, "trash_bin")
 DEFAULT_BUCKET_HISTORY_PATH: str = os.path.join(XDG_DATA_HOME, "history.pkl")
+DEFAULT_BUCKET_PATH: str = os.path.join(XDG_DATA_HOME, "trash_bin")
+DEFAULT_SETTINGS_PATH: str = os.path.join(XDG_CONFIG_HOME, "settings.json")
 
 DEFAULT_BUCKET_SIZE: int = BYTES_TO_MBYTES * 1024
 DEFAULT_CLEANUP_TIME: int = SECONDS_TO_DAYS * 7
@@ -136,10 +135,10 @@ class AppSettings:
         }
 
 
-def generate(path: str = DEFAULT_SETTINGS_PATH) -> None:
+def generate(path: str = DEFAULT_SETTINGS_PATH, dryrun: bool = False) -> None:
     dirname = os.path.dirname(path)
     if dirname:
-        rmlib.mkdir(dirname)
+        rmlib.mkdir(dirname, dryrun)
 
     try:
         with io.open(path, mode="wt", encoding="utf-8") as stream_out:
