@@ -35,9 +35,7 @@ class SettingsArgumentsWrapper:
 
 def abspath(path: str) -> str:
     """The function converts the user-entered path to an absolute path."""
-    dirname = os.path.dirname(os.path.abspath(__file__))
-
-    return os.path.normpath(os.path.join(dirname, path))
+    return os.path.normpath(os.path.expanduser(path))
 
 
 def show(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
@@ -50,15 +48,11 @@ def restore(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
 
 
 def remove(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
-    if arguments.force:
-        # The user's request for command execution.
-        if not confirmation("delete"):
-            return None
+    if arguments.force and not confirmation("delete"):
+        return None
 
-    if arguments.confirm:
-        # The user's request for command execution.
-        if not confirmation("delete"):
-            return None
+    if arguments.confirm and not confirmation("delete"):
+        return None
 
     for file in arguments.FILES:
         if arguments.regex:
@@ -150,7 +144,6 @@ def main() -> None:  # pylint: disable=too-many-statements
     logger_parser = argparse.ArgumentParser(add_help=False)
     logger_group = logger_parser.add_mutually_exclusive_group()
     logger_group.add_argument(
-        "-d",
         "--debug",
         action="store_const",
         const=logging.DEBUG,  # level must be an int or a str
@@ -159,7 +152,6 @@ def main() -> None:  # pylint: disable=too-many-statements
         help="print a lot of debugging statements while executing user's commands",
     )
     logger_group.add_argument(
-        "-s",
         "--silent",
         action="store_const",
         const=logging.NOTSET,  # level must be an int or a str
@@ -168,7 +160,6 @@ def main() -> None:  # pylint: disable=too-many-statements
         help="do not print any statements while executing user's commands",
     )
     logger_group.add_argument(
-        "-v",
         "--verbose",
         action="store_const",
         const=logging.INFO,  # level must be an int or a str
@@ -181,7 +172,7 @@ def main() -> None:  # pylint: disable=too-many-statements
     parser = argparse.ArgumentParser(
         add_help=True, parents=[settings_parser, logger_parser, option_parser]
     )
-    parser.add_argument("--version", action="version", version=str(__version__))
+    parser.add_argument("-v", "--version", action="version", version=str(__version__))
     parser.add_argument(
         "--generate-settings",
         action="store_true",
@@ -246,7 +237,8 @@ def main() -> None:  # pylint: disable=too-many-statements
             )
             app_bucket.startup()
 
-            arguments.func(arguments, app_bucket)
+            if hasattr(arguments, "func"):
+                arguments.func(arguments, app_bucket)
     except KeyboardInterrupt as err:
         logger.error("Stop this program runtime on the current machine.")
         logger.debug("An unexpected error occurred at this program runtime:", exc_info=True)
