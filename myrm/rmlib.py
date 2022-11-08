@@ -31,7 +31,7 @@ def mkdir(path: str, dry_run: bool = False) -> None:
 
 def rm(path: str, dry_run: bool = False) -> None:
     try:
-        if not dry_run:
+        if not dry_run or not os.path.exists(path):
             os.remove(path)
         logger.info("Item '%s' was deleted from the current machine.", path)
     except OSError as err:
@@ -69,7 +69,7 @@ def rmdir(path: str, dry_run: bool = False) -> None:
             sys.exit(getattr(err, "errno", errno.EPERM))
 
     try:
-        if not dry_run:
+        if not dry_run or not os.path.exists(path):
             os.rmdir(path)
     except OSError as err:
         logger.error("The determined path can't be deleted from the current machine.")
@@ -82,7 +82,7 @@ def rmdir(path: str, dry_run: bool = False) -> None:
 
 def mv(src: str, dst: str, dry_run: bool = False) -> None:
     try:
-        if not dry_run:
+        if not dry_run or not os.path.exists(src):
             os.rename(src, dst)
         logger.info("Item '%s' was moved to '%s' as a destinational path.", src, dst)
     except OSError as err:

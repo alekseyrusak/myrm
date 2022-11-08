@@ -166,7 +166,7 @@ class Bucket:
     def _get_size(self, path: str) -> int:
         size = 0
 
-        if os.path.isfile(path) or os.path.islink(path):
+        if os.path.isfile(path) and not os.path.islink(path):
             try:
                 return os.path.getsize(path)
             except (OSError, IOError) as err:
@@ -237,7 +237,10 @@ class Bucket:
             sys.exit(getattr(err, "errno", errno.EPERM))
 
         for name in content:
-            trashed_time = time.localtime(os.path.getmtime(os.path.join(self.path, name)))
+            if os.path.islink(os.path.join(self.path, name)):
+                trashed_time = time.localtime()
+            else:
+                trashed_time = time.localtime(os.path.getmtime(os.path.join(self.path, name)))
             date = time.strftime("%H:%M:%S %m-%d-%Y", trashed_time)
 
             index = self.history.get_next_index()
@@ -270,7 +273,9 @@ class Bucket:
             abspath = os.path.join(self.path, name)
 
             try:
-                trashed_time = os.path.getmtime(abspath)
+                trashed_time = time.mktime(
+                    time.strptime(self.history[name].date, "%H:%M:%S %m-%d-%Y")
+                )
             except OSError as err:
                 logger.error("Can't detect trashed time for the determined path.")
                 logger.debug("An unexpected error occurred at this program runtime:", exc_info=True)

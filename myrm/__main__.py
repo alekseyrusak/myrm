@@ -35,7 +35,12 @@ class SettingsArgumentsWrapper:
 
 def abspath(path: str) -> str:
     """The function converts the user-entered path to an absolute path."""
-    return os.path.normpath(os.path.expanduser(path))
+    normpath = os.path.normpath(os.path.expanduser(path))
+
+    if os.path.isabs(normpath):
+        return normpath
+
+    return os.path.normpath(os.path.join(os.getcwd(), normpath))
 
 
 def show(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
@@ -56,10 +61,10 @@ def remove(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
 
     for file in arguments.FILES:
         if arguments.regex:
-            for reg_file in sorted(glob.glob(os.path.join(file, arguments.regex))):
+            for reg_file in sorted(glob.glob(os.path.join(abspath(file), arguments.regex))):
                 trash_bin.rm(reg_file, force=arguments.force, dry_run=arguments.dry_run)
         else:
-            trash_bin.rm(file, force=arguments.force, dry_run=arguments.dry_run)
+            trash_bin.rm(abspath(file), force=arguments.force, dry_run=arguments.dry_run)
 
     return None
 

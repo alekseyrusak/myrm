@@ -292,7 +292,7 @@ def test_get_size_with_not_impossible_error(fake_bucket, mocker):
     get_size_mock.side_effect = IOError(errno.EIO, "")
 
     mocker.patch("myrm.bucket.os.path.isfile", return_value=True)
-    mocker.patch("myrm.bucket.os.path.islink", return_value=True)
+    mocker.patch("myrm.bucket.os.path.islink", return_value=False)
 
     with pytest.raises(SystemExit) as exit_info:
         fake_bucket._get_size("test.txt")
@@ -337,6 +337,18 @@ def test_check_content_bucket(fake_bucket, fs):
     assert path == list(fake_bucket.history.values())[0].name
 
 
+def test_check_content_bucket_if_islink(fake_bucket, fs, mocker):
+    src = "test"
+    fs.create_file(src)
+    path = "test_link"
+    fs.create_symlink(os.path.join(fake_bucket.path, path), "file")
+    mocker.patch("myrm.bucket.os.path.islink", return_value=True)
+
+    fake_bucket.check_content()
+    assert len(os.listdir(fake_bucket.path))
+    assert path == list(fake_bucket.history.values())[0].name
+
+
 def test_check_content_bucket_history(fake_bucket, fake_entry):
     path = "test.txt"
     fake_bucket.history[path] = fake_entry
@@ -365,9 +377,10 @@ def test_timeout_cleanup_bucket(fake_bucket, fs, mocker):
 
     fake_bucket.storetime = 1
     mocker.patch("myrm.settings.SECONDS_TO_DAYS", new=1)
-    mocker.patch("myrm.bucket.os.path.getmtime", return_value=1)
+    mocker.patch("myrm.bucket.time.mktime", return_value=1)
     mocker.patch("myrm.bucket.time.time", return_value=10)
 
+    fake_bucket.check_content()
     fake_bucket.timeout_cleanup()
     assert before_cleanup_content != os.listdir(fake_bucket.path)
 
@@ -390,8 +403,10 @@ def test_timeout_cleanup_bucket_with_trashed_time_error(fake_bucket, fs, mocker)
     fs.create_file(os.path.join(fake_bucket.path, "test.txt"))
 
     logger_mock = mocker.patch("myrm.bucket.logger")
-    gettime_mock = mocker.patch("myrm.bucket.os.path.getmtime")
+    gettime_mock = mocker.patch("myrm.bucket.time.mktime")
     gettime_mock.side_effect = OSError(errno.EPERM, "")
+
+    fake_bucket.check_content()
 
     with pytest.raises(SystemExit) as exit_info:
         fake_bucket.timeout_cleanup()
