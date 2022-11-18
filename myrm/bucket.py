@@ -94,7 +94,7 @@ class BucketHistory(collections.UserDict):
     def get_table(self, page: int = 1, count: int = 10) -> PrettyTable:
         values = list(self.values())
         if not values:
-            logger.warning("Show content of the bucket failed because tha main bucket is empty.")
+            logger.warning("Show content of the bucket failed because the main bucket is empty.")
             # Stop this program runtime and return the exit status code.
             sys.exit(errno.EPERM)
 
@@ -170,7 +170,7 @@ class Bucket:
             try:
                 return os.path.getsize(path)
             except (OSError, IOError) as err:
-                logger.error("It's impossible to get size of the determined path.")
+                logger.error("It's impossible to get the size of the determined path.")
                 logger.debug("An unexpected error occurred at this program runtime:", exc_info=True)
                 # Stop this program runtime and return the exit status code.
                 sys.exit(getattr(err, "errno", errno.EIO))
@@ -191,7 +191,7 @@ class Bucket:
                     try:
                         size += os.path.getsize(abspath)
                     except OSError as err:
-                        logger.error("The calculation size for the current item unavailable.")
+                        logger.error("The calculation size for the current item is unavailable.")
                         logger.debug(
                             "An unexpected error occurred at this program runtime:", exc_info=True
                         )
@@ -205,6 +205,7 @@ class Bucket:
 
     def startup(self) -> None:
         self.create()
+        self.check_content()
         self.timeout_cleanup()
         self.check_content()
 
@@ -214,8 +215,8 @@ class Bucket:
         self.history.cleanup(dry_run)
 
     def rm(self, path: str, force: bool = False, dry_run: bool = False) -> None:
-        if self.maxsize * settings.BYTES_TO_MBYTES <= self.get_size() + self._get_size(path):
-            logger.error("Maximum trash bin size exided.")
+        if self.maxsize <= self.get_size() + self._get_size(path):
+            logger.error("The maximum trash bin size has been exceeded.")
             # Stop this program runtime and return the exit status code.
             sys.exit(errno.EPERM)
 
@@ -240,7 +241,7 @@ class Bucket:
             if os.path.islink(os.path.join(self.path, name)):
                 trashed_time = time.localtime()
             else:
-                trashed_time = time.localtime(os.path.getmtime(os.path.join(self.path, name)))
+                trashed_time = time.localtime(os.path.getatime(os.path.join(self.path, name)))
             date = time.strftime("%H:%M:%S %m-%d-%Y", trashed_time)
 
             index = self.history.get_next_index()
@@ -282,12 +283,12 @@ class Bucket:
                 # Stop this program runtime and return the exit status code.
                 sys.exit(getattr(err, "errno", errno.EPERM))
 
-            if (current_time - trashed_time) >= self.storetime * settings.SECONDS_TO_DAYS:
+            if (current_time - trashed_time) >= self.storetime:
                 self._rm(abspath)
 
     def restore(self, index: int, dry_run: bool = False) -> None:
         if not self.history:
-            logger.error("Restore failed because tha main bin is empty.")
+            logger.error("Restore failed because the main bin is empty.")
             # Stop this program runtime and return the exit status code.
             sys.exit(errno.EPERM)
 
@@ -295,12 +296,12 @@ class Bucket:
             if self.history[key].index == index:
                 name = key
             elif index not in self.history.get_indices():
-                logger.error("Restore failed because the required index '%s' not found.", index)
+                logger.error("Restore failed because the required index '%s' was not found.", index)
                 # Stop this program runtime and return the exit status code.
                 sys.exit(errno.EPERM)
 
         if self.history[name].status == Status.UNKNOWN.value:
-            logger.error("Restore failed because the original location unknown.")
+            logger.error("Restore failed because the original location is unknown.")
             # Stop this program runtime and return the exit status code.
             sys.exit(errno.EPERM)
 

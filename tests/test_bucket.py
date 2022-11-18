@@ -108,7 +108,7 @@ def test_get_table_bucket_history_with_warning(fake_bucket_history, mocker):
         fake_bucket_history.get_table(1, 1)
 
     logger_mock.warning.assert_called_with(
-        "Show content of the bucket failed because tha main bucket is empty."
+        "Show content of the bucket failed because the main bucket is empty."
     )
     assert exit_info.value.code == errno.EPERM
 
@@ -274,7 +274,7 @@ def test_rm_to_bucket_with_maxsize_error(fake_bucket, mocker):
     with pytest.raises(SystemExit) as exit_info:
         fake_bucket.rm("", force=False, dry_run=False)
 
-    logger_mock.error.assert_called_with("Maximum trash bin size exided.")
+    logger_mock.error.assert_called_with("The maximum trash bin size has been exceeded.")
     assert exit_info.value.code == errno.EPERM
 
 
@@ -297,7 +297,7 @@ def test_get_size_with_not_impossible_error(fake_bucket, mocker):
     with pytest.raises(SystemExit) as exit_info:
         fake_bucket._get_size("test.txt")
 
-    logger_mock.error.assert_called_with("It's impossible to get size of the determined path.")
+    logger_mock.error.assert_called_with("It's impossible to get the size of the determined path.")
     assert exit_info.value.code == errno.EIO
 
 
@@ -324,7 +324,9 @@ def test_get_size_bucket_with_abspath_error(fake_bucket, fs, mocker):
     with pytest.raises(SystemExit) as exit_info:
         fake_bucket.get_size()
 
-    logger_mock.error.assert_called_with("The calculation size for the current item unavailable.")
+    logger_mock.error.assert_called_with(
+        "The calculation size for the current item is unavailable."
+    )
     assert exit_info.value.code == errno.EPERM
 
 
@@ -463,7 +465,7 @@ def test_restore_with_bucket_is_empty_error(fake_bucket, mocker):
     with pytest.raises(SystemExit) as exit_info:
         fake_bucket.restore(5, dry_run=False)
 
-    logger_mock.error.assert_called_with("Restore failed because tha main bin is empty.")
+    logger_mock.error.assert_called_with("Restore failed because the main bin is empty.")
     assert exit_info.value.code == errno.EPERM
 
 
@@ -477,7 +479,7 @@ def test_restore_with_index_error(fake_bucket, fake_entry, mocker):
         fake_bucket.restore(index, dry_run=False)
 
     logger_mock.error.assert_called_with(
-        "Restore failed because the required index '%s' not found.", index
+        "Restore failed because the required index '%s' was not found.", index
     )
     assert exit_info.value.code == errno.EPERM
 
@@ -491,7 +493,7 @@ def test_restore_with_status_unknown_error(fake_bucket, fs, mocker):
     with pytest.raises(SystemExit) as exit_info:
         fake_bucket.restore(1, dry_run=False)
 
-    logger_mock.error.assert_called_with("Restore failed because the original location unknown.")
+    logger_mock.error.assert_called_with("Restore failed because the original location is unknown.")
     assert exit_info.value.code == errno.EPERM
 
 

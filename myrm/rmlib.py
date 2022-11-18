@@ -61,7 +61,7 @@ def rmdir(path: str, dry_run: bool = False) -> None:
                 abspath = os.path.join(top, name)
                 if not dry_run:
                     os.rmdir(abspath)
-                logger.info("Folder '%s' was deleted from the current machine.", abspath)
+                logger.info("Directory '%s' was deleted from the current machine.", abspath)
         except OSError as err:
             logger.error("The determined path can't be deleted from the current machine.")
             logger.debug("An unexpected error occurred at this program runtime:", exc_info=True)

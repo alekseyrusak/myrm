@@ -53,16 +53,16 @@ def restore(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
 
 
 def remove(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> None:
-    if arguments.force and not confirmation("delete"):
+    if arguments.force and not confirmation("delete it"):
         return None
 
-    if arguments.confirm and not confirmation("delete"):
+    if arguments.confirm and not confirmation("delete it"):
         return None
 
     for file in arguments.FILES:
         if arguments.regex:
             for reg_file in sorted(glob.glob(os.path.join(abspath(file), arguments.regex))):
-                trash_bin.rm(reg_file, force=arguments.force, dry_run=arguments.dry_run)
+                trash_bin.rm(abspath(reg_file), force=arguments.force, dry_run=arguments.dry_run)
         else:
             trash_bin.rm(abspath(file), force=arguments.force, dry_run=arguments.dry_run)
 
