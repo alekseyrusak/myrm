@@ -138,11 +138,8 @@ touch test.txt
 
 # Step -- 2.
 myrm rm --confirm test.txt
-Do you want to delete it? (yes/no)
-
-# Step -- 3.
-yes
-
+Do you want to delete it? (yes / no)
+yes  # or 'y'
 ```
 
 ---

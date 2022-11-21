@@ -83,12 +83,9 @@ def maintain_bucket(arguments: argparse.Namespace, trash_bin: bucket.Bucket) -> 
 
 
 def confirmation(command: str) -> bool:
-    answer = ""
+    answer = input(f"Do you want to {command}? (yes / no)\n").lower()
 
-    while answer not in ("yes", "no"):
-        answer = input(str(f"Do you want to {command}? (yes/no)\n")).lower()
-
-    if answer == "yes":
+    if answer in ("yes", "y"):
         return True
 
     return False
@@ -225,14 +222,14 @@ def main() -> None:  # pylint: disable=too-many-statements
     try:
         arguments = parser.parse_args()
 
+        # Set a new logging level of the preferred reporting system.
+        logger.setLevel(arguments.logging_level)
+        if arguments.dry_run:
+            logger.setLevel(logging.INFO)
+
         if arguments.generate_settings:
             settings.generate()
         else:
-            # Set a new logging level of the preferred reporting system.
-            logger.setLevel(arguments.logging_level)
-            if arguments.dry_run:
-                logger.setLevel(logging.INFO)
-
             app_settings = arguments.get_settings(arguments)
             app_bucket = bucket.Bucket(
                 path=app_settings.bucket_path,
